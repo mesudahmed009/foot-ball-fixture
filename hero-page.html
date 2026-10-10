@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>login to our tournament</title>
+    <link rel="stylesheet" href="practice.css">
+    <script type="module">
+
+import { auth } from "./firebase-common.js";
+
+import {
+    signInWithEmailAndPassword,
+    signInAnonymously
+} from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
+
+
+console.log("HERO FIREBASE AUTH:", auth);
+console.log("HERO CURRENT USER:", auth.currentUser);
+
+
+
+
+
+
+
+const loginForm = document.getElementById("loginForm");
+const loginMessage = document.getElementById("loginMessage");
+const userBtn = document.getElementById("userBtn");
+
+
+// ===============================
+// USER LOGIN
+// ===============================
+
+userBtn.addEventListener("click", async function () {
+
+    try {
+
+        console.log("USER LOGIN STARTED");
+
+        await signInAnonymously(auth);
+
+        console.log(
+            "ANONYMOUS USER:",
+            auth.currentUser
+        );
+
+        sessionStorage.setItem(
+            "loginMode",
+            "user"
+        );
+
+        window.location.href =
+            "./tournament.html";
+
+    } catch (error) {
+
+        console.error(error);
+
+        alert(
+            "Unable to continue as user."
+        );
+
+    }
+
+});
+
+
+// ===============================
+// ADMIN LOGIN
+// ===============================
+
+loginForm.addEventListener(
+    "submit",
+    async function (event) {
+
+        event.preventDefault();
+
+        const email =
+            document
+                .getElementById("email")
+                .value
+                .trim();
+
+        const password =
+            document
+                .getElementById("password")
+                .value;
+
+        loginMessage.textContent =
+            "Logging in...";
+
+
+        try {
+
+            console.log(
+                "LOGIN BUTTON WORKED"
+            );
+
+
+            await signInWithEmailAndPassword(
+                auth,
+                email,
+                password
+            );
+             console.log("LOGIN SUCCESS");
+              console.log("USER AFTER LOGIN:", auth.currentUser);
+                 console.log("UID AFTER LOGIN:", auth.currentUser?.uid);
+
+            console.log(
+                "FIREBASE LOGIN FINISHED"
+            );
+
+            console.log(
+                "ADMIN USER:",
+                auth.currentUser
+            );
+
+            console.log(
+                "ADMIN UID:",
+                auth.currentUser?.uid
+            );
+
+
+            // Tell tournament.html
+            // this is admin login
+
+            sessionStorage.setItem(
+                "loginMode",
+                "admin"
+            );
+
+
+            loginMessage.textContent =
+                "Login successful ✅";
+
+
+            // Give Firebase a moment
+            // before changing page
+
+            setTimeout(() => {
+
+                window.location.href =
+                    "./tournament.html";
+
+            }, 300);
+
+
+        } catch (error) {
+
+            console.error(
+                "LOGIN ERROR:",
+                error
+            );
+
+            loginMessage.textContent =
+                "Login failed ❌ " +
+                error.message;
+
+        }
+
+    }
+);
+
+</script>
+</head>
+<body>
+
+    <div class="container">
+
+        <div class="form-box login">
+            <h2> login platform for as admin</h2>
+
+            <form id="loginForm">
+                <div class="input-box">
+                    <input type="email" id="email" required>
+                    <label>Email</label>
+                    <span class="icon">👤</span>
+                </div>
+
+                <div class="input-box">
+                 <input type="password" id="password" required>                    <label>Password</label>
+                    <span class="icon">🔒</span>
+                </div>
+
+                <div class="remember">
+                    <label>
+                        <input type="checkbox">
+                        Remember me
+                    </label>
+                    <a href="#">Forgot Password?</a>
+                </div>
+
+                <button type="submit" class="btn">Login as admin</button><br><br>
+                     <p id="loginMessage"></p>
+                     <button type="button" id="userBtn" class="btn">
+                       👤 Continue as User
+                  </button>
+                <div class="register">
+                    <p>Don't have an account?
+                        <a href="#">Register</a>
+                    </p>
+                </div>
+            </form>
+        </div>
+
+        <div class="info-text">
+            <h2 style="text-transform: capitalize;">powered by mr.unknown</h2>
+            <p></p>
+        </div>
+
+    </div>
+
+</body>
+</html>

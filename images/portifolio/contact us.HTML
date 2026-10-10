@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Portfolio</title>
+    <link rel="stylesheet" href="contact.css">
+</head>
+
+<body>
+
+    <header>
+        <a href="#" class="logo">MyPortfolio</a>
+
+        <nav>
+            <a href="#home">Home</a>
+            <a href="#about">About</a>
+            <a href="#services">Services</a>
+            <a href="#portfolio">Portfolio</a>
+            <a href="#contact">Contact</a>
+        </nav>
+    </header>
+
+    <section class="home" id="home">
+        <div class="home-content">
+            <h1>Hello, I'm <span>saliha ahmed</span></h1>
+            <h2>Web Developer</h2>
+
+            <p>
+                I am a beginner web developer who loves creating
+                beautiful and modern websites using HTML, CSS and JavaScript.
+            </p>
+
+            <a href="#contact" class="btn">Contact Me</a>
+        </div>
+
+        <div class="cube">
+            <div class="face front">HTML</div>
+            <div class="face back">CSS</div>
+            <div class="face right">JS</div>
+            <div class="face left">WEB</div>
+            <div class="face top">CODE</div>
+            <div class="face bottom">DEV</div>
+        </div>
+    </section>
+
+    <section id="about" class="section">
+        <h2>About Me</h2>
+
+        <p>
+            I am a student learning web development.
+            I enjoy building websites and learning new programming skills.
+        </p>
+    </section>
+
+    <section id="services" class="section">
+        <h2>My Services</h2>
+
+        <div class="cards">
+            <div class="card">
+                <h3>Web Design</h3>
+                <p>I create simple and attractive website designs.</p>
+            </div>
+
+            <div class="card">
+                <h3>HTML & CSS</h3>
+                <p>I build responsive pages using HTML and CSS.</p>
+            </div>
+
+            <div class="card">
+                <h3>JavaScript</h3>
+                <p>I add interactive features using JavaScript.</p>
+            </div>
+        </div>
+    </section>
+
+    <section id="portfolio" class="section">
+        <h2>My Projects</h2>
+
+        <div class="cards">
+            <div class="card">
+                <h3>Restaurant Website</h3>
+                <p>A website for a local restaurant.</p>
+            </div>
+
+            <div class="card">
+                <h3>Travel Website</h3>
+                <p>A simple travel agency website.</p>
+            </div>
+
+            <div class="card">
+                <h3>Hotel Website</h3>
+                <p>A hotel booking website.</p>
+            </div>
+        </div>
+    </section>
+
+    <section id="contact" class="section">
+        <h2>Contact Me</h2>
+
+        <form id="contactForm">
+            <input type="text" placeholder="Your Name" required>
+            <input type="email" placeholder="Your Email" required>
+            <textarea placeholder="Your Message" required></textarea>
+
+            <button type="submit" class="btn">Send Message</button>
+        </form>
+
+        <p id="message"></p>
+    </section>
+
+    <footer>
+        <p>© 2026 MyPortfolio. All Rights Reserved.</p>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>

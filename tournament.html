@@ -1,0 +1,1808 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<script type="module">
+import { auth, db } from "./firebase-common.js";
+console.log("FIREBASE AUTH OBJECT:", auth);
+console.log("CURRENT USER:", auth.currentUser);
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
+import {
+    getAuth,
+    onAuthStateChanged,
+    signOut
+} from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
+import {
+    getFirestore,
+    doc,
+    getDoc,
+    setDoc,
+    deleteDoc,
+    onSnapshot,
+    collection
+} from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
+
+
+
+window.currentUserRole = null;
+window.savedPlayerGoals = {};
+window.dynamicFixtures = [];
+window.savedResults = {};
+
+window.tournamentPlayers = [
+    { id: "abdulaziz_a_1", team: "ABDULAZIZ.A", name: "a/azia.A" },
+    { id: "abdulaziz_a_2", team: "ABDULAZIZ.A", name: "abdulrahman" },
+    { id: "abdulaziz_a_3", team: "ABDULAZIZ.A", name: "abubeker" },
+    { id: "abdulaziz_a_4", team: "ABDULAZIZ.A", name: "mahir" },
+    { id: "abdulaziz_a_5", team: "ABDULAZIZ.A", name: "amar" },
+    { id: "abdulaziz_a_6", team: "ABDULAZIZ.A", name: "Ebrahim" },
+    { id: "sead_1", team: "Sead", name: "Sead" },
+    { id: "sead_2", team: "Sead", name: "Abdellah Siraj" },
+    { id: "sead_3", team: "Sead", name: "Mohammed Abdellah" },
+    { id: "sead_4", team: "Sead", name: "Mohamed" },
+    { id: "sead_5", team: "Sead", name: "A/Menan" },
+    { id: "sead_6", team: "Sead", name: "Reyan" },
+    { id: "khalid_1", team: "Khalid", name: "Khalid S." },
+    { id: "khalid_2", team: "Khalid", name: "Binamin A." },
+    { id: "khalid_3", team: "Khalid", name: "Muhammad D." },
+    { id: "khalid_4", team: "Khalid", name: "Muhammad S." },
+    { id: "khalid_5", team: "Khalid", name: "Nuh S." },
+    { id: "khalid_6", team: "Khalid", name: "Ferhan J." },
+    { id: "khalid_7", team: "Khalid", name: "Imran A." },
+    { id: "hubi_1", team: "Hubi", name: "Hassen" },
+    { id: "hubi_2", team: "Hubi", name: "Huzeyfa" },
+    { id: "hubi_3", team: "Hubi", name: "Abubeker.Seid" },
+    { id: "hubi_4", team: "Hubi", name: "Hubi" },
+    { id: "hubi_5", team: "Hubi", name: "Aymen.N" },
+    { id: "hubi_6", team: "Hubi", name: "Aymen" },
+    { id: "hubi_7", team: "Hubi", name: "Ahmed" },
+    { id: "emran_1", team: "Emran", name: "Imran .Y" },
+    { id: "emran_2", team: "Emran", name: "Zeki" },
+    { id: "emran_3", team: "Emran", name: "Bilal" },
+    { id: "emran_4", team: "Emran", name: "A/Rahman" },
+    { id: "emran_5", team: "Emran", name: "Saud" },
+    { id: "emran_6", team: "Emran", name: "Fuad" }
+];
+
+window.saveMatchToFirestore = async function(element, index, homeTeam, awayTeam, homeScore, awayScore) {
+    await setDoc(doc(db, "matches", element + "_" + (index + 1)), {
+        group: element,
+        number: index + 1,
+        home: homeTeam,
+        away: awayTeam,
+        homeScore: Number(homeScore),
+        awayScore: Number(awayScore),
+        played: true,
+        fixtureType: "static"
+    });
+};
+
+window.savePlayerGoalsToFirestore = async function(playerId, team, name, goals) {
+    await setDoc(doc(db, "players", playerId), {
+        team,
+        name,
+        goals: Number(goals)
+    });
+};
+
+window.saveCustomFixtureToFirestore = async function(home, away, group, date, time) {
+    const fixtureId = "fixture_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8);
+    await setDoc(doc(db, "matches", fixtureId), {
+        fixtureType: "custom",
+        group,
+        home,
+        away,
+        date,
+        time,
+        homeScore: null,
+        awayScore: null,
+        played: false,
+        createdAt: new Date().toISOString()
+    });
+};
+window.deleteCustomFixtureFromFirestore = async function(customId) {
+    if (window.currentUserRole !== "admin") return;
+
+    await deleteDoc(doc(db, "matches", customId));
+};
+function renderAdminFixtures() {
+
+    const container = document.getElementById("adminFixturesList");
+
+    if (!container) return;
+
+    container.innerHTML = "";
+
+    if (window.currentUserRole !== "admin") return;
+
+    if (!window.dynamicFixtures || window.dynamicFixtures.length === 0) {
+        container.innerHTML = `
+            <p style="color:#888;">
+                No custom fixtures yet.
+            </p>
+        `;
+        return;
+    }
+
+    window.dynamicFixtures.forEach(fixture => {
+
+        container.innerHTML += `
+            <div style="
+                display:flex;
+                justify-content:space-between;
+                align-items:center;
+                gap:10px;
+                padding:12px;
+                border-top:1px solid #333;
+            ">
+
+                <div>
+                    <strong>
+                        ${fixture.home} VS ${fixture.away}
+                    </strong>
+                    <br>
+
+                    <small style="color:#aaa;">
+                        📅 ${fixture.date}
+                        &nbsp;
+                        🕐 ${fixture.time}
+                    </small>
+                </div>
+
+                <button onclick="deleteFixture('${fixture.id}')">
+                    🗑️ Delete
+                </button>
+
+            </div>
+        `;
+    });
+}
+window.deleteFixture = async function(id) {
+
+    if (window.currentUserRole !== "admin") return;
+
+    const fixture = (window.dynamicFixtures || [])
+        .find(f => f.id === id);
+
+    if (!fixture) return;
+
+    const confirmDelete = confirm(
+        `Delete ${fixture.home} vs ${fixture.away}?`
+    );
+
+    if (!confirmDelete) return;
+
+    try {
+
+        await window.deleteCustomFixtureFromFirestore(id);
+
+        alert("Fixture deleted successfully! ✅");
+
+    } catch (error) {
+
+        console.error(error);
+
+        alert("Could not delete fixture ❌");
+    }
+};
+window.updateCustomFixtureScore = async function(customId, home, away, group, homeScore, awayScore) {
+    const item = (window.dynamicFixtures || []).find(f => f.id === customId);
+    await setDoc(doc(db, "matches", customId), {
+        fixtureType: "custom",
+        group,
+        home,
+        away,
+        date: item ? item.date : "",
+        time: item ? item.time : "",
+        homeScore: Number(homeScore),
+        awayScore: Number(awayScore),
+        played: true,
+        updatedAt: new Date().toISOString()
+    });
+};
+
+window.updateRealtimeMatch = function(data, id) {
+    if (!data || !data.home || !data.away) return;
+
+    const key = data.home + "-" + data.away;
+
+    if (data.played === true && data.homeScore !== null && data.awayScore !== null) {
+        window.savedResults[key] = {
+            home: Number(data.homeScore),
+            away: Number(data.awayScore)
+        };
+    }
+
+    if (data.fixtureType === "custom") {
+        window.dynamicFixtures.push({
+            id,
+            group: data.group || "group1",
+            home: data.home,
+            away: data.away,
+            date: data.date || "",
+            time: data.time || "",
+            homeScore: data.homeScore,
+            awayScore: data.awayScore,
+            played: data.played === true
+        });
+    }
+};
+
+window.startRealtimeListener = function() {
+    if (!auth.currentUser) return;
+
+    if (window.realtimeUnsubscribe) {
+        window.realtimeUnsubscribe();
+    }
+
+    window.realtimeUnsubscribe = onSnapshot(
+        collection(db, "matches"),
+        snapshot => {
+            window.savedResults = {};
+            window.dynamicFixtures = [];
+
+            snapshot.forEach(docSnap => {
+                window.updateRealtimeMatch(docSnap.data(), docSnap.id);
+            });
+
+            localStorage.setItem("footballResults", JSON.stringify(window.savedResults));
+
+            if (typeof window.updateWebsite === "function") {
+                window.updateWebsite();
+            }
+            if (typeof renderAdminFixtures === "function") {
+    renderAdminFixtures();
+}
+        },
+        error => console.error("Realtime matches error:", error)
+    );
+};
+
+window.startPlayersListener = function() {
+    if (!auth.currentUser) return;
+
+    if (window.playersUnsubscribe) {
+        window.playersUnsubscribe();
+    }
+
+    window.playersUnsubscribe = onSnapshot(
+        collection(db, "players"),
+        snapshot => {
+            window.savedPlayerGoals = {};
+
+            snapshot.forEach(docSnap => {
+                const data = docSnap.data();
+                window.savedPlayerGoals[docSnap.id] = Number(data.goals || 0);
+            });
+
+            if (typeof window.refreshPlayerGoalsUI === "function") {
+                window.refreshPlayerGoalsUI();
+            }
+        },
+        error => console.error("Player goals error:", error)
+    );
+};
+
+window.logoutTournament = async function() {
+    try {
+        sessionStorage.removeItem("loginMode");
+        await signOut(auth);
+        window.location.href = "./hero-page.html";
+    } catch (error) {
+        console.error(error);
+        alert("Logout failed.");
+    }
+};
+window.applyRoleToUI = function () {
+
+    const panel = document.getElementById("adminPanel");
+
+    if (!panel) {
+        console.log("ADMIN PANEL NOT FOUND");
+        return;
+    }
+
+    console.log(
+        "APPLYING ROLE:",
+        window.currentUserRole
+    );
+
+    if (window.currentUserRole === "admin") {
+
+        panel.style.display = "block";
+
+        console.log("ADMIN PANEL SHOWN ✅");
+
+    } else {
+
+        panel.style.display = "none";
+
+        console.log("ADMIN PANEL HIDDEN — USER MODE");
+
+    }
+};
+
+   onAuthStateChanged(auth, async (user) => {
+
+    console.log("AUTH USER:", user);
+
+    if (!user) {
+        console.log("NO USER LOGGED IN");
+        window.currentUserRole = null;
+        window.applyRoleToUI();
+        return;
+    }
+
+    console.log("USER UID:", user.uid);
+    console.log("IS ANONYMOUS:", user.isAnonymous);
+
+    // Anonymous users are normal users
+    if (user.isAnonymous) {
+
+        window.currentUserRole = "user";
+
+        console.log("USER MODE");
+
+        window.applyRoleToUI();
+
+        if (window.startRealtimeListener) {
+            window.startRealtimeListener();
+        }
+
+        if (window.startPlayersListener) {
+            window.startPlayersListener();
+        }
+
+        return;
+    }
+
+    // Check Firestore users/{uid}
+    try {
+
+        const userRef = doc(db, "users", user.uid);
+        const userSnap = await getDoc(userRef);
+
+        console.log("USER DOCUMENT EXISTS:", userSnap.exists());
+
+        if (userSnap.exists()) {
+
+            const userData = userSnap.data();
+
+            console.log("USER DATA:", userData);
+            console.log("ROLE:", userData.role);
+
+            if (userData.role === "admin") {
+                window.currentUserRole = "admin";
+            } else {
+                window.currentUserRole = "user";
+            }
+
+        } else {
+
+            console.log("NO USERS DOCUMENT FOUND");
+
+            window.currentUserRole = "user";
+        }
+
+        console.log(
+            "FINAL ROLE:",
+            window.currentUserRole
+        );
+
+        window.applyRoleToUI();
+
+        if (window.startRealtimeListener) {
+            window.startRealtimeListener();
+        }
+
+        if (window.startPlayersListener) {
+            window.startPlayersListener();
+        }
+
+    } catch (error) {
+
+        console.error(
+            "ROLE CHECK ERROR:",
+            error
+        );
+
+        window.currentUserRole = "user";
+
+        window.applyRoleToUI();
+    }
+
+});
+</script>
+
+<title>Football Fixture Platform</title>
+
+<style>
+
+/* =========================
+   GENERAL
+========================= */
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background: #050505;
+    color: white;
+    min-height: 100vh;
+}
+
+
+/* =========================
+   HEADER
+========================= */
+
+header {
+    padding: 30px 7%;
+    background: #090909;
+    border-bottom: 1px solid #292929;
+}
+
+header h1 {
+    font-size: 32px;
+}
+
+header p {
+    color: #999;
+    margin-top: 8px;
+}
+
+
+/* =========================
+   NAVIGATION
+========================= */
+
+nav {
+    display: flex;
+    gap: 10px;
+    padding: 15px 7%;
+    background: #101010;
+    border-bottom: 1px solid #292929;
+    flex-wrap: wrap;
+}
+
+nav button {
+    background: #1c1c1c;
+    color: white;
+    border: 1px solid #333;
+    padding: 12px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 15px;
+}
+
+nav button:hover {
+    background: #f5b400;
+    color: black;
+}
+
+
+/* =========================
+   PAGES
+========================= */
+
+.page {
+    width: 86%;
+    max-width: 1200px;
+    margin: 35px auto;
+}
+
+.hidden {
+    display: none;
+}
+
+.page-title {
+    font-size: 30px;
+    margin-bottom: 25px;
+}
+
+
+/* =========================
+   DASHBOARD
+========================= */
+
+.hero {
+    padding: 45px;
+    border-radius: 15px;
+    background: linear-gradient(135deg, #171717, #080808);
+    border: 1px solid #292929;
+    margin-bottom: 25px;
+}
+
+.hero h2 {
+    font-size: 35px;
+    margin-bottom: 10px;
+}
+
+.hero p {
+    color: #aaa;
+}
+
+
+.stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    margin-bottom: 25px;
+}
+
+.stat-card {
+    background: #111;
+    border: 1px solid #292929;
+    border-radius: 12px;
+    padding: 25px;
+    text-align: center;
+}
+
+.stat-card h3 {
+    font-size: 30px;
+}
+
+.stat-card p {
+    color: #999;
+    margin: 8px 0;
+}
+
+.stat-card strong {
+    font-size: 25px;
+}
+
+
+/* =========================
+   GROUP SECTIONS
+========================= */
+
+.group-section,
+.results-section {
+    background: #0d0d0d;
+    border: 1px solid #292929;
+    border-radius: 14px;
+    padding: 25px;
+    margin-bottom: 30px;
+}
+
+.group-section h2,
+.results-section h2 {
+    margin-bottom: 20px;
+}
+
+
+/* =========================
+   FIXTURES
+========================= */
+
+.fixture {
+    display: grid;
+    grid-template-columns: 80px 1fr 100px;
+    align-items: center;
+    padding: 20px;
+    border-top: 1px solid #292929;
+}
+
+.match-number {
+    color: #aaa;
+}
+
+.teams {
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.vs {
+    background: #ffbd00;
+    color: black;
+    padding: 5px 9px;
+    border-radius: 5px;
+    margin: 0 10px;
+    font-size: 13px;
+}
+
+.match-status {
+    text-align: right;
+    color: #777;
+}
+
+
+/* =========================
+   TABLE
+========================= */
+
+.table-container {
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 750px;
+}
+
+th {
+    background: #181818;
+    padding: 15px 10px;
+}
+
+td {
+    padding: 15px 10px;
+    border-top: 1px solid #292929;
+    text-align: center;
+}
+
+td:nth-child(2) {
+    text-align: left;
+    font-weight: bold;
+}
+
+tr:hover {
+    background: #161616;
+}
+
+
+/* =========================
+   RESULTS
+========================= */
+
+.result-card {
+    display: grid;
+    grid-template-columns: 1fr 60px 25px 60px 1fr 70px;
+    gap: 10px;
+    align-items: center;
+    padding: 18px;
+    border-top: 1px solid #292929;
+}
+
+.result-team {
+    font-weight: bold;
+}
+
+.result-team:nth-child(5) {
+    text-align: right;
+}
+
+.score-input {
+    width: 55px;
+    padding: 10px;
+    text-align: center;
+    background: #1b1b1b;
+    border: 1px solid #444;
+    color: white;
+    border-radius: 6px;
+    font-size: 17px;
+}
+
+.save-btn {
+    background: #f5b400;
+    border: none;
+    padding: 10px;
+    border-radius: 7px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.save-btn:hover {
+    background: #ffc933;
+}
+
+
+/* =========================
+   TEAMS
+========================= */
+
+.team-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 25px;
+}
+
+.team-card {
+    background: #0d0d0d;
+    border: 1px solid #292929;
+    border-radius: 14px;
+    padding: 25px;
+}
+
+.team-card h2 {
+    margin-bottom: 20px;
+}
+
+.team-card li {
+    list-style-position: inside;
+    padding: 13px 5px;
+    border-top: 1px solid #292929;
+    color: #ddd;
+}
+
+.team-card li span {
+    float: right;
+    color: #888;
+}
+
+
+/* =========================
+   FOOTER
+========================= */
+
+footer {
+    text-align: center;
+    padding: 30px;
+    margin-top: 50px;
+    border-top: 1px solid #292929;
+    color: #777;
+}
+
+
+/* =========================
+   ADMIN PANEL
+========================= */
+
+#adminPanel select,
+#adminPanel input {
+    background: #101010;
+    color: white;
+    border: 1px solid #444;
+    padding: 11px;
+    margin: 8px 5px 8px 0;
+    border-radius: 7px;
+}
+
+#adminPanel button {
+    background: #f5b400;
+    color: #111;
+    border: none;
+    padding: 11px 16px;
+    border-radius: 7px;
+    cursor: pointer;
+    font-weight: bold;
+    margin: 8px 5px 8px 0;
+}
+
+#adminPanel hr {
+    border: 0;
+    border-top: 1px solid #333;
+    margin: 20px 0;
+}
+
+#fixtureMessage,
+#goalMessage {
+    margin-top: 8px;
+}
+
+/* =========================
+   MOBILE
+========================= */
+
+@media (max-width: 800px) {
+
+    .stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .team-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .fixture {
+        grid-template-columns: 45px 1fr;
+    }
+
+    .match-status {
+        display: none;
+    }
+
+    .result-card {
+        grid-template-columns: 1fr 55px 20px 55px 1fr 60px;
+    }
+}
+
+
+@media (max-width: 550px) {
+
+    header h1 {
+        font-size: 24px;
+    }
+
+    .page {
+        width: 94%;
+    }
+
+    nav {
+        padding: 10px;
+    }
+
+    nav button {
+        flex: 1;
+        font-size: 12px;
+        padding: 10px 5px;
+    }
+
+    .hero {
+        padding: 25px;
+    }
+
+    .hero h2 {
+        font-size: 27px;
+    }
+
+    .result-card {
+        grid-template-columns: 1fr 45px 15px 45px 1fr;
+    }
+
+    .save-btn {
+        grid-column: 1 / -1;
+    }
+}
+
+</style>
+
+</head>
+
+
+<body>
+
+
+<div id="adminPanel" style="display:none; background:#171717; border:2px solid #f5b400; padding:25px; margin:25px auto; width:86%; max-width:1200px; border-radius:15px;">
+    <h2>👑 Admin Panel</h2>
+
+    <h3>📅 Add New Fixture</h3>
+     <label style="display:block; margin-top:10px;">
+    🏆 Select Group
+</label>
+
+<select id="fixtureGroup">
+    <script>
+function updateFixtureTeamOptions() {
+
+    const group = document.getElementById("fixtureGroup").value;
+    const homeTeam = document.getElementById("homeTeam");
+    const awayTeam = document.getElementById("awayTeam");
+
+    let teams = [];
+
+    if (group === "group1") {
+        teams = ["11A", "9C", "9A2", "10A2"];
+    }
+
+    if (group === "group2") {
+        teams = ["10B", "10A", "9A", "9B"];
+    }
+
+    homeTeam.innerHTML = '<option value="">Select Home Team</option>';
+    awayTeam.innerHTML = '<option value="">Select Away Team</option>';
+
+    teams.forEach(team => {
+
+        homeTeam.innerHTML +=
+            `<option value="${team}">${team}</option>`;
+
+        awayTeam.innerHTML +=
+            `<option value="${team}">${team}</option>`;
+    });
+}
+
+document.getElementById("fixtureGroup")
+    .addEventListener("change", updateFixtureTeamOptions);
+</script>
+    <option value="">Select Group</option>
+    <option value="group1">Group 1</option>
+    <option value="group2">Group 2</option>
+</select>
+    <select id="homeTeam">
+        <option value="">Select Home Team</option>
+        <option value="11A">11A</option>
+        <option value="9C">9C</option>
+        <option value="9A2">9A2</option>
+        <option value="10A2">10A2</option>
+        <option value="10B">10B</option>
+        <option value="10A">10A</option>
+        <option value="9A">9A</option>
+        <option value="9B">9B</option>
+    </select>
+
+    <select id="awayTeam">
+        <option value="">Select Away Team</option>
+        <option value="11A">11A</option>
+        <option value="9C">9C</option>
+        <option value="9A2">9A2</option>
+        <option value="10A2">10A2</option>
+        <option value="10B">10B</option>
+        <option value="10A">10A</option>
+        <option value="9A">9A</option>
+        <option value="9B">9B</option>
+    </select>
+
+    <input type="date" id="matchDate">
+    <input type="time" id="matchTime">
+
+    <button id="addFixtureBtn">💾 Save Fixture</button>
+    <p id="fixtureMessage"></p>
+     <h3>🗑️ Manage Fixtures</h3>
+<div id="adminFixturesList"></div>
+    <hr>
+
+    <h3>🥅 Player Goals</h3>
+
+    <select id="playerSelect">
+        <option value="">Select player</option>
+    </select>
+
+    <input type="number" id="playerGoals" min="0" placeholder="Goals">
+    <button id="saveGoalsBtn">💾 Save Goals</button>
+    <p id="goalMessage"></p>
+
+    <hr>
+    <button id="logoutBtn" class="save-btn">🚪 Logout</button>
+</div>
+<header>
+
+    <h1>⚽ Football Fixture Platform</h1>
+
+    <p>Group Stage Tournament</p>
+
+</header>
+
+
+<!-- =========================
+     NAVIGATION
+========================= -->
+
+<nav>
+
+    <button onclick="showPage('dashboard')">
+        🏠 Home
+    </button>
+
+    <button onclick="showPage('fixtures')">
+        📅 Fixtures
+    </button>
+
+    <button onclick="showPage('standings')">
+        🏆 Standings
+    </button>
+
+    <button onclick="showPage('results')">
+        ⚽ Results
+    </button>
+
+    <button onclick="showPage('teams')">
+        👥 Teams
+    </button>
+
+</nav>
+
+
+<!-- =========================
+     DASHBOARD
+========================= -->
+
+<main id="dashboard" class="page">
+
+    <section class="hero">
+
+        <h2>🏆 Football Tournament</h2>
+
+        <p>
+            Manage your football tournament,
+            fixtures, results, teams and standings.
+        </p>
+
+    </section>
+
+
+    <section class="stats">
+
+        <div class="stat-card">
+            <h3>🏆</h3>
+            <p>Groups</p>
+            <strong>2</strong>
+        </div>
+
+        <div class="stat-card">
+            <h3>👥</h3>
+            <p>Teams</p>
+            <strong>8</strong>
+        </div>
+
+        <div class="stat-card">
+            <h3>⚽</h3>
+            <p>Matches</p>
+            <strong>12</strong>
+        </div>
+
+        <div class="stat-card">
+            <h3>🥇</h3>
+            <p>Points</p>
+            <strong>3-1-0</strong>
+        </div>
+
+    </section>
+
+
+    <section class="group-section">
+
+        <h2>📢 Tournament Rules</h2>
+
+        <p>
+            Win = 3 points
+        </p>
+
+        <p>
+            Draw = 1 point
+        </p>
+
+        <p>
+            Loss = 0 points
+        </p>
+
+        <p>
+            Each team plays every other team in its group once.
+        </p>
+
+    </section>
+
+</main>
+
+
+
+<!-- =========================
+     FIXTURES
+========================= -->
+
+<main id="fixtures" class="page hidden">
+
+    <h2 class="page-title">
+        📅 Match Fixtures
+    </h2>
+
+
+    <section class="group-section">
+
+        <h2>🏆 Group 1 — Match Schedule</h2>
+
+        <div id="group1Fixtures"></div>
+
+    </section>
+
+
+    <section class="group-section">
+
+        <h2>🏆 Group 2 — Match Schedule</h2>
+
+        <div id="group2Fixtures"></div>
+
+    </section>
+
+</main>
+
+
+
+<!-- =========================
+     STANDINGS
+========================= -->
+
+<main id="standings" class="page hidden">
+
+    <h2 class="page-title">
+        🏆 Group Standings
+    </h2>
+
+
+    <section class="group-section">
+
+        <h2>🏆 Group 1</h2>
+
+        <div class="table-container">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th>#</th>
+                        <th>Team</th>
+                        <th>P</th>
+                        <th>W</th>
+                        <th>D</th>
+                        <th>L</th>
+                        <th>GF</th>
+                        <th>GA</th>
+                        <th>GD</th>
+                        <th>Pts</th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody id="group1Table"></tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+
+
+    <section class="group-section">
+
+        <h2>🏆 Group 2</h2>
+
+        <div class="table-container">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th>#</th>
+                        <th>Team</th>
+                        <th>P</th>
+                        <th>W</th>
+                        <th>D</th>
+                        <th>L</th>
+                        <th>GF</th>
+                        <th>GA</th>
+                        <th>GD</th>
+                        <th>Pts</th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody id="group2Table"></tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+</main>
+
+
+
+
+<main id="results" class="page hidden">
+
+    <h2 class="page-title">
+        ⚽ Enter Match Results
+    </h2>
+
+
+    <section class="results-section">
+
+        <h2>🏆 Group 1</h2>
+
+        <div id="group1Results"></div>
+
+    </section>
+
+
+    <section class="results-section">
+
+        <h2>🏆 Group 2</h2>
+
+        <div id="group2Results"></div>
+
+    </section>
+
+</main>
+
+
+
+<!-- =========================
+     TEAMS
+========================= -->
+
+<main id="teams" class="page hidden">
+
+    <h2 class="page-title">
+        👥 Teams & Players
+    </h2>
+
+
+    <div class="team-grid">
+
+
+        <div class="team-card">
+
+            <h2>⚽ Team: ABDULAZIZ.A</h2>
+
+            <ol>
+
+                <li>
+                    a/azia.A
+                    <span data-player-id="abdulaziz_a_1">0 goals</span>
+                </li>
+
+                <li>
+                    abdulrahman
+                    <span data-player-id="abdulaziz_a_2">0 goals</span>
+                </li>
+
+                <li>
+                    abubeker
+                    <span data-player-id="abdulaziz_a_3">0 goals</span>
+                </li>
+
+                <li>
+                    mahir
+                    <span data-player-id="abdulaziz_a_4">0 goals</span>
+                </li>
+
+                <li>
+                    amar
+                    <span data-player-id="abdulaziz_a_5">0 goals</span>
+                </li>
+
+                <li>
+                    Ebrahim
+                    <span data-player-id="abdulaziz_a_6">0 goals</span>
+                </li>
+
+            </ol>
+
+        </div>
+
+
+
+        <!-- SEID -->
+
+        <div class="team-card">
+
+            <h2>⚽ Team: Sead</h2>
+
+            <ol>
+
+                <li>
+                    Sead
+                    <span data-player-id="sead_1">0 goals</span>
+                </li>
+
+                <li>
+                    Abdellah Siraj
+                    <span data-player-id="sead_2">0 goals</span>
+                </li>
+
+                <li>
+                    Mohammed Abdellah
+                    <span data-player-id="sead_3">0 goals</span>
+                </li>
+
+                <li>
+                    Mohamed
+                    <span data-player-id="sead_4">0 goals</span>
+                </li>
+
+                <li>
+                    A/Menan
+                    <span data-player-id="sead_5">0 goals</span>
+                </li>
+
+                <li>
+                    Reyan
+                    <span data-player-id="sead_6">0 goals</span>
+                </li>
+
+            </ol>
+
+        </div>
+
+
+        <!-- KHALID -->
+
+        <div class="team-card">
+
+            <h2>⚽ Team Khalid</h2>
+
+            <ol>
+
+                <li>
+                    Khalid S.
+                    <span data-player-id="khalid_1">0 goals</span>
+                </li>
+
+                <li>
+                    Binamin A.
+                    <span data-player-id="khalid_2">0 goals</span>
+                </li>
+
+                <li>
+                    Muhammad D.
+                    <span data-player-id="khalid_3">0 goals</span>
+                </li>
+
+                <li>
+                    Muhammad S.
+                    <span data-player-id="khalid_4">0 goals</span>
+                </li>
+
+                <li>
+                    Nuh S.
+                    <span data-player-id="khalid_5">0 goals</span>
+                </li>
+
+                <li>
+                    Ferhan J.
+                    <span data-player-id="khalid_6">0 goals</span>
+                </li>
+
+                <li>
+                    Imran A.
+                    <span data-player-id="khalid_7">0 goals</span>
+                </li>
+
+            </ol>
+
+        </div>
+
+
+        <!-- HUBI -->
+
+        <div class="team-card">
+
+            <h2>⚽ Team: Hubi</h2>
+
+            <ol>
+
+                <li>
+                    Hassen
+                    <span data-player-id="hubi_1">0 goals</span>
+                </li>
+
+                <li>
+                    Huzeyfa
+                    <span data-player-id="hubi_2">0 goals</span>
+                </li>
+
+                <li>
+                    Abubeker.Seid
+                    <span data-player-id="hubi_3">0 goals</span>
+                </li>
+
+                <li>
+                    Hubi
+                    <span data-player-id="hubi_4">0 goals</span>
+                </li>
+
+                <li>
+                    Aymen.N
+                    <span data-player-id="hubi_5">0 goals</span>
+                </li>
+
+                <li>
+                    Aymen
+                    <span data-player-id="hubi_6">0 goals</span>
+                </li>
+
+                <li>
+                    Ahmed
+                    <span data-player-id="hubi_7">0 goals</span>
+                </li>
+
+            </ol>
+
+        </div>
+
+
+        <!-- EMRAN -->
+
+        <div class="team-card">
+
+            <h2>⚽ Team: Emran</h2>
+
+            <ol>
+
+                <li>
+                    Imran .Y
+                    <span data-player-id="emran_1">0 goals</span>
+                </li>
+
+                <li>
+                    Zeki
+                    <span data-player-id="emran_2">0 goals</span>
+                </li>
+
+                <li>
+                    Bilal
+                    <span data-player-id="emran_3">0 goals</span>
+                </li>
+
+                <li>
+                    A/Rahman
+                    <span data-player-id="emran_4">0 goals</span>
+                </li>
+
+                <li>
+                    Saud
+                    <span data-player-id="emran_5">0 goals</span>
+                </li>
+
+                <li>
+                    Fuad
+                    <span data-player-id="emran_6">0 goals</span>
+                </li>
+
+            </ol>
+
+        </div>
+
+    </div>
+
+</main>
+
+
+
+<footer>
+
+    ⚽ powered by mesud ahmed and AI help © 2026
+
+</footer>
+
+
+
+<script>
+
+const group1Teams = ["11A", "9C", "9A2", "10A2"];
+const group2Teams = ["10B", "10A", "9A", "9B"];
+
+const group1Matches = [
+    ["11A", "9C"], ["9A2", "10A2"], ["11A", "9A2"],
+    ["9C", "10A2"], ["11A", "10A2"], ["9C", "9A2"]
+];
+
+const group2Matches = [
+    ["10B", "10A"], ["9A", "9B"], ["10B", "9A"],
+    ["10A", "9B"], ["10B", "9B"], ["10A", "9A"]
+];
+
+function showPage(page) {
+    document.querySelectorAll(".page").forEach(section => section.classList.add("hidden"));
+    const target = document.getElementById(page);
+    if (target) target.classList.remove("hidden");
+}
+
+function getMatchesForGroup(group) {
+    const baseMatches =
+        group === "group1" ? group1Matches : group2Matches;
+
+    const customMatches = (window.dynamicFixtures || [])
+        .filter(item => item.group === group)
+        .map(item => [item.home, item.away]);
+
+    return [...baseMatches, ...customMatches];
+}
+
+function getFixtureInfo(group, index) {
+    const baseLength = group === "group1" ? group1Matches.length : group2Matches.length;
+    if (index < baseLength) return null;
+    const extras = (window.dynamicFixtures || []).filter(item => item.group === group);
+    return extras[index - baseLength] || null;
+}
+
+function displayFixtures(matches, element, group) {
+
+    const container = document.getElementById(element);
+
+    if (!container) return;
+
+    container.innerHTML = "";
+
+    const fixtures = (window.dynamicFixtures || [])
+        .filter(item => item.group === group);
+
+    if (fixtures.length === 0) {
+
+        container.innerHTML = `
+            <div style="
+                padding:25px;
+                text-align:center;
+                color:#888;
+                border-top:1px solid #292929;
+            ">
+                📅 No fixtures scheduled yet.
+            </div>
+        `;
+
+        return;
+    }
+
+    fixtures.forEach((fixture, index) => {
+
+        const result = window.savedResults[
+            fixture.home + "-" + fixture.away
+        ];
+
+        let status = "Not Played";
+
+        if (result) {
+            status = `
+                <strong style="color:#f5b400;">
+                    ${result.home} - ${result.away}
+                </strong>
+            `;
+        }
+
+        container.innerHTML += `
+
+            <div class="fixture">
+
+                <div class="match-number">
+                    #${index + 1}
+                </div>
+
+                <div>
+
+                    <div class="teams">
+                        ${fixture.home}
+                        <span class="vs">VS</span>
+                        ${fixture.away}
+                    </div>
+
+                    <div style="
+                        margin-top:8px;
+                        color:#aaa;
+                        font-size:14px;
+                    ">
+                        📅 ${fixture.date}
+                        &nbsp;&nbsp;
+                        🕐 ${fixture.time}
+                    </div>
+
+                </div>
+
+                <div class="match-status">
+                    ${status}
+                </div>
+
+            </div>
+
+        `;
+
+    });
+
+}
+
+function calculateStandings(teams, matches) {
+    const table = teams.map(team => ({team, P:0, W:0, D:0, L:0, GF:0, GA:0, GD:0, Pts:0}));
+
+    matches.forEach(match => {
+        const result = window.savedResults[match[0] + "-" + match[1]];
+        if (!result) return;
+
+        const home = table.find(team => team.team === match[0]);
+        const away = table.find(team => team.team === match[1]);
+        if (!home || !away) return;
+
+        home.P++; away.P++;
+        home.GF += result.home; home.GA += result.away;
+        away.GF += result.away; away.GA += result.home;
+
+        if (result.home > result.away) {
+            home.W++; home.Pts += 3; away.L++;
+        } else if (result.home < result.away) {
+            away.W++; away.Pts += 3; home.L++;
+        } else {
+            home.D++; away.D++; home.Pts++; away.Pts++;
+        }
+    });
+
+    table.forEach(team => team.GD = team.GF - team.GA);
+    table.sort((a,b) => b.Pts - a.Pts || b.GD - a.GD || b.GF - a.GF);
+    return table;
+}
+
+function displayStandings(teams, matches, element) {
+    const table = document.getElementById(element);
+    if (!table) return;
+    table.innerHTML = "";
+
+    calculateStandings(teams, matches).forEach((team, index) => {
+        table.innerHTML += `<tr>
+            <td>${index + 1}</td><td>${team.team}</td><td>${team.P}</td>
+            <td>${team.W}</td><td>${team.D}</td><td>${team.L}</td>
+            <td>${team.GF}</td><td>${team.GA}</td><td>${team.GD}</td><td><strong>${team.Pts}</strong></td>
+        </tr>`;
+    });
+}
+
+function displayResults(matches, element, group) {
+    const container = document.getElementById(element);
+    if (!container) return;
+    container.innerHTML = "";
+
+    matches.forEach((match, index) => {
+        const key = match[0] + "-" + match[1];
+        const result = window.savedResults[key];
+        const custom = getFixtureInfo(group, index);
+
+        if (window.currentUserRole === "admin") {
+            const home = result ? result.home : "";
+            const away = result ? result.away : "";
+            const customId = custom ? custom.id : "";
+
+            container.innerHTML += `<div class="result-card">
+                <div class="result-team">${match[0]}</div>
+                <input class="score-input" type="number" min="0" id="home-${element}-${index}" value="${home}">
+                <strong>:</strong>
+                <input class="score-input" type="number" min="0" id="away-${element}-${index}" value="${away}">
+                <div class="result-team">${match[1]}</div>
+                <button class="save-btn" onclick="saveResult('${group}', ${index}, '${match[0]}', '${match[1]}', '${customId}')">Save</button>
+            </div>`;
+        } else {
+            const status = result ? `Played — ${result.home} : ${result.away}` : "Not Played";
+            container.innerHTML += `<div class="result-card">
+                <div class="result-team">${match[0]}</div>
+                <strong style="grid-column:2 / 5;text-align:center;">${status}</strong>
+                <div class="result-team">${match[1]}</div>
+            </div>`;
+        }
+    });
+}
+
+window.saveResult = async function(group, index, homeTeam, awayTeam, customId) {
+    const homeInput = document.getElementById("home-" + (group === "group1" ? "group1Results" : "group2Results") + "-" + index);
+    const awayInput = document.getElementById("away-" + (group === "group1" ? "group1Results" : "group2Results") + "-" + index);
+    if (!homeInput || !awayInput || homeInput.value === "" || awayInput.value === "") {
+        alert("Enter both scores.");
+        return;
+    }
+
+    const homeScore = Number(homeInput.value);
+    const awayScore = Number(awayInput.value);
+    const key = homeTeam + "-" + awayTeam;
+    window.savedResults[key] = {home: homeScore, away: awayScore};
+
+    try {
+        if (customId) {
+            await window.updateCustomFixtureScore(
+                customId, homeTeam, awayTeam, group, homeScore, awayScore
+            );
+        } else {
+            await window.saveMatchToFirestore(group, index, homeTeam, awayTeam, homeScore, awayScore);
+        }
+        alert(`${homeTeam} ${homeScore} - ${awayScore} ${awayTeam} saved!`);
+        updateWebsite();
+    } catch (error) {
+        console.error(error);
+        alert("Could not save result ❌ " + (error.code || ""));
+    }
+};
+
+function refreshPlayerGoalsUI() {
+    const select = document.getElementById("playerSelect");
+    if (select) {
+        const current = select.value;
+        select.innerHTML = '<option value="">Select player</option>';
+        const groups = {};
+        window.tournamentPlayers.forEach(player => {
+            if (!groups[player.team]) {
+                groups[player.team] = document.createElement("optgroup");
+                groups[player.team].label = "Team: " + player.team;
+                select.appendChild(groups[player.team]);
+            }
+            const option = document.createElement("option");
+            option.value = player.id;
+            option.textContent = `${player.name} — ${window.savedPlayerGoals[player.id] || 0} goals`;
+            groups[player.team].appendChild(option);
+        });
+        if (current && window.savedPlayerGoals[current] !== undefined) select.value = current;
+    }
+
+    document.querySelectorAll("[data-player-id]").forEach(span => {
+        span.textContent = `${window.savedPlayerGoals[span.dataset.playerId] || 0} goals`;
+    });
+}
+window.refreshPlayerGoalsUI = refreshPlayerGoalsUI;
+
+async function savePlayerGoal() {
+    if (window.currentUserRole !== "admin") return;
+    const select = document.getElementById("playerSelect");
+    const input = document.getElementById("playerGoals");
+    const message = document.getElementById("goalMessage");
+    if (!select.value || input.value === "") {
+        alert("Select a player and enter goals.");
+        return;
+    }
+    const player = window.tournamentPlayers.find(p => p.id === select.value);
+    if (!player) return;
+    try {
+        await window.savePlayerGoalsToFirestore(player.id, player.team, player.name, Number(input.value));
+        message.textContent = `${player.name} → ${input.value} goals saved! ✅`;
+        message.style.color = "green";
+    } catch (error) {
+        console.error(error);
+        message.textContent = "Could not save goals ❌";
+        message.style.color = "red";
+    }
+}
+
+function addFixture() {
+    if (window.currentUserRole !== "admin") return;
+    const home = document.getElementById("homeTeam").value;
+    const away = document.getElementById("awayTeam").value;
+    const date = document.getElementById("matchDate").value;
+    const time = document.getElementById("matchTime").value;
+    const message = document.getElementById("fixtureMessage");
+
+    if (!home || !away) { alert("Please select both teams."); return; }
+    if (home === away) { alert("Home team and Away team cannot be the same."); return; }
+    if (!date || !time) { alert("Please select date and time."); return; }
+
+    const group1 = group1Teams.includes(home) && group1Teams.includes(away);
+    const group2 = group2Teams.includes(home) && group2Teams.includes(away);
+    if (!group1 && !group2) {
+        alert("Home and Away teams must belong to the same group.");
+        return;
+    }
+
+    const group = group1 ? "group1" : "group2";
+    window.saveCustomFixtureToFirestore(home, away, group, date, time)
+        .then(() => {
+            message.textContent = `${home} vs ${away} saved successfully! ✅`;
+            message.style.color = "green";
+            document.getElementById("homeTeam").value = "";
+            document.getElementById("awayTeam").value = "";
+            document.getElementById("matchDate").value = "";
+            document.getElementById("matchTime").value = "";
+        })
+        .catch(error => {
+            console.error(error);
+            message.textContent = "Could not save fixture ❌";
+            message.style.color = "red";
+        });
+}
+
+function updateWebsite() {
+    const g1 = getMatchesForGroup("group1");
+    const g2 = getMatchesForGroup("group2");
+    displayFixtures(g1, "group1Fixtures", "group1");
+    displayFixtures(g2, "group2Fixtures", "group2");
+    displayStandings(group1Teams, g1, "group1Table");
+    displayStandings(group2Teams, g2, "group2Table");
+    displayResults(g1, "group1Results", "group1");
+    displayResults(g2, "group2Results", "group2");
+}
+window.updateWebsite = updateWebsite;
+
+document.addEventListener("DOMContentLoaded", () => {
+
+    window.applyRoleToUI();
+
+    document.getElementById("addFixtureBtn")?.addEventListener("click", addFixture);
+    document.getElementById("fixtureGroup")?.addEventListener(
+    "change",
+    updateFixtureTeamOptions
+);
+    document.getElementById("saveGoalsBtn")?.addEventListener("click", savePlayerGoal);
+    document.getElementById("logoutBtn")?.addEventListener("click", () => window.logoutTournament());
+    refreshPlayerGoalsUI();
+    updateWebsite();
+});
+
+</script>
+
+
+
+
+
+
+
+
+</body>
+
+</html>
