@@ -18,20 +18,9 @@ import {
 console.log("HERO FIREBASE AUTH:", auth);
 console.log("HERO CURRENT USER:", auth.currentUser);
 
-
-
-
-
-
-
 const loginForm = document.getElementById("loginForm");
 const loginMessage = document.getElementById("loginMessage");
 const userBtn = document.getElementById("userBtn");
-
-
-// ===============================
-// USER LOGIN
-// ===============================
 
 userBtn.addEventListener("click", async function () {
 
@@ -65,11 +54,6 @@ userBtn.addEventListener("click", async function () {
     }
 
 });
-
-
-// ===============================
-// ADMIN LOGIN
-// ===============================
 
 loginForm.addEventListener(
     "submit",
@@ -143,7 +127,6 @@ loginForm.addEventListener(
 
                 window.location.href =
                     "./tournament.html";
-
             }, 300);
 
 
