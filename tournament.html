@@ -1830,25 +1830,21 @@ document.addEventListener("DOMContentLoaded", () => {
 const bgMusic = document.getElementById("backgroundMusic");
 
 bgMusic.volume = 0.35;
-bgMusic.muted = false;
-
-bgMusic.addEventListener("error", () => {
-    console.error("Audio file error:", bgMusic.error);
-});
 
 async function startMusic() {
     try {
         await bgMusic.play();
         console.log("MUSIC PLAYING ✅");
+
+        document.removeEventListener("click", startMusic);
+        document.removeEventListener("keydown", startMusic);
     } catch (error) {
-        console.error("MUSIC ERROR:", error.name, error.message);
+        console.error("Music error:", error);
     }
 }
 
-window.addEventListener("load", startMusic);
-document.addEventListener("pointerdown", startMusic);
+document.addEventListener("click", startMusic);
 document.addEventListener("keydown", startMusic);
-
 
 </script>
 
