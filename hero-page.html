@@ -145,11 +145,35 @@ loginForm.addEventListener(
 
     }
 );
+ const bgMusic = document.getElementById("backgroundMusic");
+
+bgMusic.volume = 0.35;
+
+async function startMusic() {
+    try {
+        await bgMusic.play();
+        console.log("MUSIC PLAYING ✅");
+
+        document.removeEventListener("click", startMusic);
+        document.removeEventListener("keydown", startMusic);
+    } catch (error) {
+        console.error("Music error:", error);
+    }
+}
+
+document.addEventListener("click", startMusic);
+document.addEventListener("keydown", startMusic);
 
 </script>
 </head>
 <body>
-
+   <audio
+    id="backgroundMusic"
+    src="01 - The Weeknd - Starboy.mp3"
+    autoplay
+    loop
+    preload="auto">
+</audio>
     <div class="container">
 
         <div class="form-box login">
