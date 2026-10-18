@@ -432,6 +432,8 @@ window.applyRoleToUI = function () {
    GENERAL
 ========================= */
 
+
+
 * {
     box-sizing: border-box;
     margin: 0;
@@ -440,9 +442,13 @@ window.applyRoleToUI = function () {
 
 body {
     font-family: Arial, sans-serif;
-    background: #050505;
+background: var(--bg);
+color: var(--text);
     color: white;
     min-height: 100vh;
+     position: relative;
+    background: transparent;
+    isolation: isolate;
 }
 
 
@@ -490,7 +496,7 @@ nav button {
 }
 
 nav button:hover {
-    background: #f5b400;
+    background: #20D9F5;
     color: black;
 }
 
@@ -545,7 +551,7 @@ nav button:hover {
 }
 
 .stat-card {
-    background: #111;
+background: var(--panel);
     border: 1px solid #292929;
     border-radius: 12px;
     padding: 25px;
@@ -594,7 +600,8 @@ nav button:hover {
     grid-template-columns: 80px 1fr 100px;
     align-items: center;
     padding: 20px;
-    border-top: 1px solid #292929;
+    background: var(--panel);
+    border-top: 1px solid var(--border);
 }
 
 .match-number {
@@ -689,7 +696,7 @@ tr:hover {
 }
 
 .save-btn {
-    background: #f5b400;
+    background: #20D9F5;
     border: none;
     padding: 10px;
     border-radius: 7px;
@@ -764,7 +771,7 @@ footer {
 }
 
 #adminPanel button {
-    background: #f5b400;
+    background: #20D9F5;
     color: #111;
     border: none;
     padding: 11px 16px;
@@ -789,66 +796,35 @@ footer {
    MOBILE
 ========================= */
 
-@media (max-width: 800px) {
-
-    .stats {
-        grid-template-columns: repeat(2, 1fr);
-    }
-
-    .team-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .fixture {
-        grid-template-columns: 45px 1fr;
-    }
-
-    .match-status {
-        display: none;
-    }
-
-    .result-card {
-        grid-template-columns: 1fr 55px 20px 55px 1fr 60px;
-    }
+/* BACKGROUND VIDEO */
+#backgroundVideo {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    object-fit: cover;
+    z-index: -1;
+    pointer-events: none;
 }
 
-
-@media (max-width: 550px) {
-
-    header h1 {
-        font-size: 24px;
-    }
-
-    .page {
-        width: 94%;
-    }
-
-    nav {
-        padding: 10px;
-    }
-
-    nav button {
-        flex: 1;
-        font-size: 12px;
-        padding: 10px 5px;
-    }
-
-    .hero {
-        padding: 25px;
-    }
-
-    .hero h2 {
-        font-size: 27px;
-    }
-
-    .result-card {
-        grid-template-columns: 1fr 45px 15px 45px 1fr;
-    }
-
-    .save-btn {
-        grid-column: 1 / -1;
-    }
+/* MAKE BODY TRANSPARENT */
+body {
+    background: transparent !important;
+    position: relative;
 }
+
+/* TRANSPARENT CONTENT BACKGROUNDS */
+header,
+nav,
+.hero,
+.stat-card,
+.group-section,
+.results-section,
+.team-card,
+footer {
+    background-color: rgba(8, 21, 38, 0.78);
+}
+
 
 </style>
 
@@ -857,8 +833,17 @@ footer {
 
 <body>
 
+<video id="backgroundVideo" autoplay muted loop playsinline>
+    <source src="./stadium.mp4" type="video/mp4">
+</video>
 
-<div id="adminPanel" style="display:none; background:#171717; border:2px solid #f5b400; padding:25px; margin:25px auto; width:86%; max-width:1200px; border-radius:15px;">
+
+<audio id="backgroundMusic" autoplay loop preload="auto">
+    <source src="./habibi.mp3" type="audio/mp3">
+</audio>
+
+
+<div id="adminPanel" style="display:none; background:#171717; border:2px solid #20D9F5; padding:25px; margin:25px auto; width:86%; max-width:1200px; border-radius:15px;">
     <h2>👑 Admin Panel</h2>
 
     <h3>📅 Add New Fixture</h3>
@@ -1575,7 +1560,7 @@ function displayFixtures(matches, element, group) {
 
         if (result) {
             status = `
-                <strong style="color:#f5b400;">
+                <strong style="color:#20D9F5;">
                     ${result.home} - ${result.away}
                 </strong>
             `;
@@ -1836,6 +1821,15 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("logoutBtn")?.addEventListener("click", () => window.logoutTournament());
     refreshPlayerGoalsUI();
     updateWebsite();
+});
+const music = document.getElementById("backgroundMusic");
+
+music.volume = 0.35;
+
+window.addEventListener("load", () => {
+    music.play().catch(error => {
+        console.log("Browser blocked music autoplay:", error);
+    });
 });
 
 </script>
