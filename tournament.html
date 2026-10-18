@@ -838,8 +838,12 @@ footer {
 </video>
 
 
-<audio id="backgroundMusic" autoplay loop preload="auto">
-    <source src="./habibi.mp3" type="audio/mp3">
+<audio
+    id="backgroundMusic"
+    src="habibi.mp3"
+    autoplay
+    loop
+    preload="auto">
 </audio>
 
 
@@ -1822,15 +1826,29 @@ document.addEventListener("DOMContentLoaded", () => {
     refreshPlayerGoalsUI();
     updateWebsite();
 });
-const music = document.getElementById("backgroundMusic");
 
-music.volume = 0.35;
+const bgMusic = document.getElementById("backgroundMusic");
 
-window.addEventListener("load", () => {
-    music.play().catch(error => {
-        console.log("Browser blocked music autoplay:", error);
-    });
+bgMusic.volume = 0.35;
+bgMusic.muted = false;
+
+bgMusic.addEventListener("error", () => {
+    console.error("Audio file error:", bgMusic.error);
 });
+
+async function startMusic() {
+    try {
+        await bgMusic.play();
+        console.log("MUSIC PLAYING ✅");
+    } catch (error) {
+        console.error("MUSIC ERROR:", error.name, error.message);
+    }
+}
+
+window.addEventListener("load", startMusic);
+document.addEventListener("pointerdown", startMusic);
+document.addEventListener("keydown", startMusic);
+
 
 </script>
 
