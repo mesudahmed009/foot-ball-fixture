@@ -772,37 +772,208 @@ footer {
    ADMIN PANEL
 ========================= */
 
+
+/* ===== NEON SPORTS ADMIN STYLE ===== */
+
+/* ===== PREMIUM FOOTBALL ADMIN ===== */
+
+#adminPanel {
+    background:
+        linear-gradient(
+            rgba(4, 15, 32, 0.78),
+            rgba(4, 15, 32, 0.88)
+        ),
+        url("./images/stadium.jpg") center / cover no-repeat !important;
+
+    border: 1px solid rgba(32, 217, 245, 0.8) !important;
+    border-radius: 24px !important;
+    padding: 32px !important;
+    color: #f8fafc;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+}
+
+/* Main heading */
+#adminPanel h2 {
+    font-size: 32px;
+    color: #ffffff;
+    padding-bottom: 20px;
+    border-bottom: 1px solid rgba(32, 217, 245, 0.4);
+}
+
+/* Section headings */
+#adminPanel h3 {
+    background: rgba(5, 23, 43, 0.9);
+    border: 1px solid rgba(32, 217, 245, 0.35);
+    border-radius: 14px;
+    padding: 17px 20px;
+    color: #20D9F5;
+    margin-top: 30px;
+    margin-bottom: 22px;
+}
+
+/* Form fields */
 #adminPanel select,
 #adminPanel input {
-    background: #101010;
-    color: white;
-    border: 1px solid #444;
-    padding: 11px;
-    margin: 8px 5px 8px 0;
-    border-radius: 7px;
+    display: inline-block;
+    background: rgba(3, 15, 31, 0.95);
+    color: #ffffff;
+    border: 1px solid #31516c;
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin: 8px 8px 16px 0;
+    min-height: 48px;
+    box-sizing: border-box;
+    transition: 0.25s ease;
 }
 
+#adminPanel select:focus,
+#adminPanel input:focus {
+    border-color: #20D9F5;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(32, 217, 245, 0.13);
+}
+
+/* Buttons */
 #adminPanel button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     background: #20D9F5;
-    color: #111;
-    border: none;
-    padding: 11px 16px;
-    border-radius: 7px;
+    color: #06111f;
+    border: 1px solid #20D9F5;
+    border-radius: 12px;
+    padding: 14px 22px;
+    margin: 10px 12px 10px 0;
+    min-height: 46px;
+    font-weight: 700;
     cursor: pointer;
-    font-weight: bold;
-    margin: 8px 5px 8px 0;
+    transition: 0.25s ease;
 }
 
+#adminPanel button:hover {
+    background: #ffffff;
+    color: #071526;
+    border-color: #ffffff;
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(32, 217, 245, 0.3);
+}
+
+/* Logout */
+#adminPanel #logoutBtn {
+    background: #2b1220;
+    color: #ff6682;
+    border-color: #ff496c;
+}
+
+#adminPanel #logoutBtn:hover {
+    background: #ff496c;
+    color: #ffffff;
+}
+
+/* Fixture list */
+#adminFixturesList {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+#adminFixturesList > div {
+    background: rgba(5, 20, 38, 0.95);
+    border: 1px solid rgba(32, 217, 245, 0.3);
+    border-radius: 14px;
+    padding: 20px;
+    min-width: 0;
+    transition: 0.25s ease;
+}
+
+#adminFixturesList > div:hover {
+    border-color: #20D9F5;
+    transform: translateY(-3px);
+}
+
+/* Messages */
+#adminPanel #fixtureMessage,
+#adminPanel #goalMessage {
+    padding: 12px 15px;
+    background: rgba(3, 15, 31, 0.85);
+    border: 1px solid rgba(32, 217, 245, 0.25);
+    border-radius: 10px;
+    color: #7eeeff;
+}
+
+/* Dividers */
 #adminPanel hr {
-    border: 0;
-    border-top: 1px solid #333;
-    margin: 20px 0;
+    border: none;
+    border-top: 1px solid rgba(32, 217, 245, 0.25);
+    margin: 30px 0;
 }
 
-#fixtureMessage,
-#goalMessage {
-    margin-top: 8px;
+/* Mobile */
+@media (max-width: 600px) {
+    #adminPanel {
+        width: 95% !important;
+        padding: 16px !important;
+        border-radius: 16px !important;
+    }
+
+    #adminPanel h2 {
+        font-size: 24px;
+    }
+
+    #adminPanel h3 {
+        padding: 13px;
+    }
+
+    #adminPanel button {
+        margin: 8px 6px 8px 0;
+    }
+    
+#adminPanel select:invalid {
+    color: #94a3b8;
 }
+
+#adminPanel select option {
+    background: #0b1728;
+    color: #ffffff;
+}
+
+#adminPanel select option:disabled {
+    color: #94a3b8;
+}
+/* Always visible cyan glow */
+#adminPanel select#fixtureGroup,
+#adminPanel select#homeTeam,
+#adminPanel select#awayTeam {
+    border: 22px solid #20D9F5 !important;
+    border-radius: 10px !important;
+    background-color: #0b1d32 !important;
+    color: white !important;
+
+    box-shadow:
+        0 0 8px rgba(32, 217, 245, 0.45),
+        0 0 18px rgba(32, 217, 245, 0.2) !important;
+
+    transition: all 0.3s ease;
+}
+
+/* Stronger glow on hover */
+#adminPanel select#fixtureGroup:hover,
+#adminPanel select#homeTeam:hover,
+#adminPanel select#awayTeam:hover {
+    box-shadow:
+        0 0 12px rgba(32, 217, 245, 0.7),
+        0 0 25px rgba(32, 217, 245, 0.4) !important;
+}
+#adminPanel select {
+    border: 2px solid #20D9F5 !important;
+    box-shadow: 0 0 15px #20D9F5 !important;
+    outline: none;
+    background: #0b1d32 !important;
+    color: white !important;
+}
+}
+
 
 /* =========================
    MOBILE
@@ -869,8 +1040,8 @@ footer {
 
 <select id="fixtureGroup">
     <script>
-function updateFixtureTeamOptions() {
 
+function updateFixtureTeamOptions() {
     const group = document.getElementById("fixtureGroup").value;
     const homeTeam = document.getElementById("homeTeam");
     const awayTeam = document.getElementById("awayTeam");
@@ -879,33 +1050,39 @@ function updateFixtureTeamOptions() {
 
     if (group === "group1") {
         teams = ["11A", "9C", "9A2", "10A2"];
-    }
-
-    if (group === "group2") {
+    } else if (group === "group2") {
         teams = ["10B", "10A", "9A", "9B"];
     }
 
-    homeTeam.innerHTML = '<option value="">Select Home Team</option>';
-    awayTeam.innerHTML = '<option value="">Select Away Team</option>';
+    homeTeam.replaceChildren();
+    awayTeam.replaceChildren();
+
+    const homePlaceholder = new Option("Select Home Team", "", true, true);
+    const awayPlaceholder = new Option("Select Away Team", "", true, true);
+
+    homePlaceholder.disabled = true;
+    awayPlaceholder.disabled = true;
+
+    homeTeam.add(homePlaceholder);
+    awayTeam.add(awayPlaceholder);
 
     teams.forEach(team => {
-
-        homeTeam.innerHTML +=
-            `<option value="${team}">${team}</option>`;
-
-        awayTeam.innerHTML +=
-            `<option value="${team}">${team}</option>`;
+        homeTeam.add(new Option(team, team));
+        awayTeam.add(new Option(team, team));
     });
-}
 
+    homeTeam.value = "";
+    awayTeam.value = "";
+}
 document.getElementById("fixtureGroup")
     .addEventListener("change", updateFixtureTeamOptions);
 </script>
-    <option value="group1">Group 1</option>
+<option value="" selected disabled>Select group</option>
+    <option value="group1" >Group 1</option>
     <option value="group2">Group 2</option>
 </select>
     <select id="homeTeam">
-        <option value="">Select Home Team</option>
+      <option value="" selected disabled>Select Home Team</option>
         <option value="11A">11A</option>
         <option value="9C">9C</option>
         <option value="9A2">9A2</option>
@@ -916,8 +1093,10 @@ document.getElementById("fixtureGroup")
         <option value="9B">9B</option>
     </select>
 
-    <select id="awayTeam">
-        <option value="">Select Away Team</option>
+    <select id="awayTeam" placeholder="Select Away Team">
+        
+    <option value="" selected disabled>Select Away Team</option>
+
         <option value="11A">11A</option>
         <option value="9C">9C</option>
         <option value="9A2">9A2</option>
