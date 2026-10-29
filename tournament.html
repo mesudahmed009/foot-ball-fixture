@@ -79,11 +79,12 @@ window.tournamentPlayers = [
     { id: "yusuf_4", team: "yusuf", name: "imran mustefa" },
     { id: "yusuf_5", team: "yusuf", name: "aslem" },
     { id: "yusuf_6", team: "yusuf", name: "imran n." },
-    { id: "abdrreuf_1", team: "abdrreuf", name: "mohammed alif" },
-    { id: "abdrreuf_2", team: "abdrreuf", name: "abdulreuf" },
-     { id: "abdrreuf_3", team: "abdrreuf", name: "fuad" },
-    { id: "abdrreuf_4", team: "abdrreuf", name: "abdselam" } ,
-    { id: "abdrreuf_5", team: "abdrreuf", name: "maruf" },
+    { id: "abderreuf_1", team: "abderreuf", name: "mohammed alif" },
+    { id: "abderreuf_2", team: "abderreuf", name: "abdulreuf" },
+     { id: "abderreuf_3", team: "abderreuf", name: "fuad" },
+    { id: "abderreuf_4", team: "abderreuf", name: "abdselam" } ,
+    { id: "abderreuf_5", team: "abderreuf", name: "maruf" },
+    { id: "abderreuf_5", team: "abderreuf", name: "mohammed" },
 ];
 
 window.saveMatchToFirestore = async function(element, index, homeTeam, awayTeam, homeScore, awayScore) {
@@ -772,11 +773,6 @@ footer {
    ADMIN PANEL
 ========================= */
 
-
-/* ===== NEON SPORTS ADMIN STYLE ===== */
-
-/* ===== PREMIUM FOOTBALL ADMIN ===== */
-
 #adminPanel {
     background:
         linear-gradient(
@@ -1212,7 +1208,7 @@ document.getElementById("fixtureGroup")
     </section>
 
 
-    <section class="group-section">
+    <section class="group-section"  style="font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;">
 
         <h2>📢 Tournament Rules</h2>
 
@@ -1269,10 +1265,14 @@ document.getElementById("fixtureGroup")
 </main>
 
 
+<main id="top-scorers" class="page hidden">
 
-<!-- =========================
-     STANDINGS
-========================= -->
+    
+
+</main>
+
+
+
 
 <main id="standings" class="page hidden">
 
@@ -1632,7 +1632,7 @@ document.getElementById("fixtureGroup")
 
                 <li>
                     abdulreuf
-                    <span data-player-id="_2">0 goals</span>
+                    <span data-player-id="abderreuf_2">0 goals</span>
                 </li>
 
                 <li>
