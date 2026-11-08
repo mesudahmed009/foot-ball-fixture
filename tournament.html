@@ -26,7 +26,9 @@ import {
     onSnapshot,
     collection
 } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
-
+window.firestoreSetDoc = setDoc;
+window.firestoreDoc = (collectionName, documentId) =>
+    doc(db, collectionName, documentId);
 
 
 window.currentUserRole = null;
@@ -35,18 +37,6 @@ window.dynamicFixtures = [];
 window.savedResults = {};
 
 window.tournamentPlayers = [
-    { id: "abdulaziz_a_1", team: "ABDULAZIZ.A", name: "a/azia.A" },
-    { id: "abdulaziz_a_2", team: "ABDULAZIZ.A", name: "abdulrahman" },
-    { id: "abdulaziz_a_3", team: "ABDULAZIZ.A", name: "abubeker" },
-    { id: "abdulaziz_a_4", team: "ABDULAZIZ.A", name: "mahir" },
-    { id: "abdulaziz_a_5", team: "ABDULAZIZ.A", name: "amar" },
-    { id: "abdulaziz_a_6", team: "ABDULAZIZ.A", name: "Ebrahim" },
-    { id: "sead_1", team: "Sead", name: "Sead" },
-    { id: "sead_2", team: "Sead", name: "Abdellah Siraj" },
-    { id: "sead_3", team: "Sead", name: "Mohammed Abdellah" },
-    { id: "sead_4", team: "Sead", name: "Mohamed" },
-    { id: "sead_5", team: "Sead", name: "A/Menan" },
-    { id: "sead_6", team: "Sead", name: "Reyan" },
     { id: "khalid_1", team: "Khalid", name: "Khalid S." },
     { id: "khalid_2", team: "Khalid", name: "Binamin A." },
     { id: "khalid_3", team: "Khalid", name: "Muhammad D." },
@@ -88,6 +78,9 @@ window.tournamentPlayers = [
 ];
 
 window.saveMatchToFirestore = async function(element, index, homeTeam, awayTeam, homeScore, awayScore) {
+        if (window.currentUserRole !== "admin") {
+        throw new Error("Only admin can update fixture results.");
+    }
     await setDoc(doc(db, "matches", element + "_" + (index + 1)), {
         group: element,
         number: index + 1,
@@ -147,8 +140,9 @@ function renderAdminFixtures() {
         return;
     }
 
-    window.dynamicFixtures.forEach(fixture => {
-
+window.dynamicFixtures
+    .filter(fixture => fixture.played !== true)
+    .forEach(fixture => {
         container.innerHTML += `
             <div style="
                 display:flex;
@@ -209,8 +203,15 @@ window.deleteFixture = async function(id) {
     }
 };
 window.updateCustomFixtureScore = async function(customId, home, away, group, homeScore, awayScore) {
-    const item = (window.dynamicFixtures || []).find(f => f.id === customId);
-    await setDoc(doc(db, "matches", customId), {
+if (window.currentUserRole !== "admin") {
+    throw new Error("Only admin can update fixture results.");
+}
+
+const item = (window.dynamicFixtures || []).find(f => f.id === customId);
+
+if (!item) {
+    throw new Error("Fixture not found.");
+}    await setDoc(doc(db, "matches", customId), {
         fixtureType: "custom",
         group,
         home,
@@ -465,9 +466,6 @@ color: var(--text);
 }
 
 
-/* =========================
-   HEADER
-========================= */
 
 header {
     padding: 30px 7%;
@@ -514,9 +512,6 @@ nav button:hover {
 }
 
 
-/* =========================
-   PAGES
-========================= */
 
 .page {
     width: 86%;
@@ -534,9 +529,7 @@ nav button:hover {
 }
 
 
-/* =========================
-   DASHBOARD
-========================= */
+
 
 .hero {
     padding: 45px;
@@ -986,13 +979,12 @@ footer {
     pointer-events: none;
 }
 
-/* MAKE BODY TRANSPARENT */
 body {
     background: transparent !important;
     position: relative;
 }
 
-/* TRANSPARENT CONTENT BACKGROUNDS */
+
 header,
 nav,
 .hero,
@@ -1004,7 +996,64 @@ footer {
     background-color: rgba(8, 21, 38, 0.78);
 }
 
+/* FIXTURES PAGE DESIGN */
 
+#fixtures.page {
+    width: 88%;
+    max-width: 1350px;
+    margin: 42px auto 30px;
+}
+
+#fixtures .page-title {
+    font-size: 34px;
+    margin-bottom: 28px;
+    color: white;
+}
+
+#fixtures .group-section {
+    background: rgba(5, 19, 39, 0.86);
+    border: 1px solid rgba(255,255,255,0.13);
+    border-radius: 17px;
+    padding: 30px 35px;
+    margin-bottom: 32px;
+    min-height: 198px;
+}
+
+#fixtures .group-section h2 {
+    color: white;
+    font-size: 28px;
+    padding-bottom: 22px;
+    border-bottom: 1px solid rgba(255,255,255,0.12);
+}
+
+@media (max-width: 700px) {
+    #fixtures.page {
+        width: 94%;
+    }
+
+    #fixtures .group-section {
+        padding: 22px 18px;
+    }
+
+    #fixtures .group-section h2 {
+        font-size: 21px;
+    }
+}
+#fixtures .fixture-empty {
+    min-height: 74px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    color: #9ca3af;
+    font-size: 18px;
+    text-align: center;
+    padding: 18px 10px 0;
+}
+
+#fixtures .fixture-empty span:first-child {
+    font-size: 18px;
+}
 </style>
 
 </head>
@@ -1035,73 +1084,24 @@ footer {
 </label>
 
 <select id="fixtureGroup">
-    <script>
-
-function updateFixtureTeamOptions() {
-    const group = document.getElementById("fixtureGroup").value;
-    const homeTeam = document.getElementById("homeTeam");
-    const awayTeam = document.getElementById("awayTeam");
-
-    let teams = [];
-
-    if (group === "group1") {
-        teams = ["11A", "9C", "9A2", "10A2"];
-    } else if (group === "group2") {
-        teams = ["10B", "10A", "9A", "9B"];
-    }
-
-    homeTeam.replaceChildren();
-    awayTeam.replaceChildren();
-
-    const homePlaceholder = new Option("Select Home Team", "", true, true);
-    const awayPlaceholder = new Option("Select Away Team", "", true, true);
-
-    homePlaceholder.disabled = true;
-    awayPlaceholder.disabled = true;
-
-    homeTeam.add(homePlaceholder);
-    awayTeam.add(awayPlaceholder);
-
-    teams.forEach(team => {
-        homeTeam.add(new Option(team, team));
-        awayTeam.add(new Option(team, team));
-    });
-
-    homeTeam.value = "";
-    awayTeam.value = "";
-}
-document.getElementById("fixtureGroup")
-    .addEventListener("change", updateFixtureTeamOptions);
-</script>
-<option value="" selected disabled>Select group</option>
-    <option value="group1" >Group 1</option>
+    <option value="" selected disabled>Select group</option>
+    <option value="group1">Group 1</option>
     <option value="group2">Group 2</option>
 </select>
-    <select id="homeTeam">
-      <option value="" selected disabled>Select Home Team</option>
-        <option value="11A">11A</option>
-        <option value="9C">9C</option>
-        <option value="9A2">9A2</option>
-        <option value="10A2">10A2</option>
-        <option value="10B">10B</option>
-        <option value="10A">10A</option>
-        <option value="9A">9A</option>
-        <option value="9B">9B</option>
-    </select>
 
-    <select id="awayTeam" placeholder="Select Away Team">
-        
+<select id="homeTeam">
+    <option value="" selected disabled>Select Home Team</option>
+</select>
+
+<select id="awayTeam">
     <option value="" selected disabled>Select Away Team</option>
+</select>
 
-        <option value="11A">11A</option>
-        <option value="9C">9C</option>
-        <option value="9A2">9A2</option>
-        <option value="10A2">10A2</option>
-        <option value="10B">10B</option>
-        <option value="10A">10A</option>
-        <option value="9A">9A</option>
-        <option value="9B">9B</option>
-    </select>
+<label for="matchDate">Match Date</label>
+<input type="date" id="matchDate">
+
+<label for="matchTime">Match Time</label>
+<input type="time" id="matchTime">
 
 
     <button id="addFixtureBtn">💾 Save Fixture</button>
@@ -1130,11 +1130,6 @@ document.getElementById("fixtureGroup")
     <p>Group Stage Tournament</p>
 
 </header>
-
-
-<!-- =========================
-     NAVIGATION
-========================= -->
 
 <nav>
 
@@ -1190,13 +1185,13 @@ document.getElementById("fixtureGroup")
         <div class="stat-card">
             <h3>👥</h3>
             <p>Teams</p>
-            <strong>8</strong>
+            <strong>6</strong>
         </div>
 
         <div class="stat-card">
             <h3>⚽</h3>
             <p>Matches</p>
-            <strong>12</strong>
+            <strong>0</strong>
         </div>
 
         <div class="stat-card">
@@ -1397,93 +1392,6 @@ document.getElementById("fixtureGroup")
     </h2>
 
 
-    <div class="team-grid">
-
-
-        <div class="team-card">
-
-            <h2>⚽ Team: ABDULAZIZ.A</h2>
-
-            <ol>
-
-                <li>
-                    a/azia.A
-                    <span data-player-id="abdulaziz_a_1">0 goals</span>
-                </li>
-
-                <li>
-                    abdulrahman
-                    <span data-player-id="abdulaziz_a_2">0 goals</span>
-                </li>
-
-                <li>
-                    abubeker
-                    <span data-player-id="abdulaziz_a_3">0 goals</span>
-                </li>
-
-                <li>
-                    mahir
-                    <span data-player-id="abdulaziz_a_4">0 goals</span>
-                </li>
-
-                <li>
-                    amar
-                    <span data-player-id="abdulaziz_a_5">0 goals</span>
-                </li>
-
-                <li>
-                    Ebrahim
-                    <span data-player-id="abdulaziz_a_6">0 goals</span>
-                </li>
-
-            </ol>
-
-        </div>
-
-
-
-        <!-- SEID -->
-
-        <div class="team-card">
-
-            <h2>⚽ Team: Sead</h2>
-
-            <ol>
-
-                <li>
-                    Sead
-                    <span data-player-id="sead_1">0 goals</span>
-                </li>
-
-                <li>
-                    Abdellah Siraj
-                    <span data-player-id="sead_2">0 goals</span>
-                </li>
-
-                <li>
-                    Mohammed Abdellah
-                    <span data-player-id="sead_3">0 goals</span>
-                </li>
-
-                <li>
-                    Mohamed
-                    <span data-player-id="sead_4">0 goals</span>
-                </li>
-
-                <li>
-                    A/Menan
-                    <span data-player-id="sead_5">0 goals</span>
-                </li>
-
-                <li>
-                    Reyan
-                    <span data-player-id="sead_6">0 goals</span>
-                </li>
-
-            </ol>
-
-        </div>
-
 
         <!-- KHALID -->
 
@@ -1533,8 +1441,7 @@ document.getElementById("fixtureGroup")
         </div>
 
 
-        <!-- HUBI -->
-
+<br>
         <div class="team-card">
 
 
@@ -1555,7 +1462,7 @@ document.getElementById("fixtureGroup")
                 </li>
 
                 <li>
-                    aban
+                    amar
                     <span data-player-id="abdellah_2">0 goals</span>
                 </li>
 
@@ -1574,7 +1481,7 @@ document.getElementById("fixtureGroup")
             </ol>
 
         </div>
-
+<br>
        <div  class="team-card">
             <h2>⚽ Team: Hubi</h2>
 
@@ -1618,7 +1525,7 @@ document.getElementById("fixtureGroup")
             </ol>
 
         </div>
-
+<br>
 <div class="team-card">
 
             <h2>⚽ Team: Abderreuf</h2>
@@ -1653,7 +1560,7 @@ document.getElementById("fixtureGroup")
             </ol>
 
         </div>
-
+<br>
 
 <div class="team-card">
 
@@ -1698,7 +1605,7 @@ document.getElementById("fixtureGroup")
             </ol>
 
         </div>
-        
+        <br>
 
         <div class="team-card">
 
@@ -1756,18 +1663,52 @@ document.getElementById("fixtureGroup")
 
 <script>
 
-const group1Teams = ["11A", "9C", "9A2", "10A2"];
-const group2Teams = ["10B", "10A", "9A", "9B"];
+const group1Teams = ["9C", "10A Team 2", "11"];
+const group2Teams = ["10A Team 1", "10B", "9B"];
 
-const group1Matches = [
-    ["11A", "9C"], ["9A2", "10A2"], ["11A", "9A2"],
-    ["9C", "10A2"], ["11A", "10A2"], ["9C", "9A2"]
-];
+function getMatchesForGroup(group) {
+    const baseMatches = group === "group1"
+        ? group1Matches
+        : group2Matches;
 
-const group2Matches = [
-    ["10B", "10A"], ["9A", "9B"], ["10B", "9A"],
-    ["10A", "9B"], ["10B", "9B"], ["10A", "9A"]
-];
+    const extraMatches = (window.dynamicFixtures || [])
+        .filter(fixture => fixture.group === group)
+        .map(fixture => [fixture.home, fixture.away]);
+
+    return [...baseMatches, ...extraMatches];
+}
+
+const group1Matches = [];
+const group2Matches = [];
+
+// Admin fixture choices follow the selected group.
+function updateFixtureTeamOptions() {
+    const group = document.getElementById("fixtureGroup")?.value;
+    const homeTeam = document.getElementById("homeTeam");
+    const awayTeam = document.getElementById("awayTeam");
+    if (!homeTeam || !awayTeam) return;
+
+    const teams = group === "group1"
+        ? group1Teams
+        : group === "group2"
+            ? group2Teams
+            : [];
+
+    homeTeam.replaceChildren(new Option("Select Home Team", ""));
+    awayTeam.replaceChildren(new Option("Select Away Team", ""));
+
+    teams.forEach(team => {
+        homeTeam.add(new Option(team, team));
+        awayTeam.add(new Option(team, team));
+    });
+}
+
+// Match metadata for admin-created fixtures.
+function getFixtureInfo(group, index) {
+    const extras = (window.dynamicFixtures || [])
+        .filter(fixture => fixture.group === group);
+    return extras[index] || null;
+}
 
 function showPage(page) {
     document.querySelectorAll(".page").forEach(section => section.classList.add("hidden"));
@@ -1775,106 +1716,50 @@ function showPage(page) {
     if (target) target.classList.remove("hidden");
 }
 
-function getMatchesForGroup(group) {
-    const baseMatches =
-        group === "group1" ? group1Matches : group2Matches;
-
-    const customMatches = (window.dynamicFixtures || [])
-        .filter(item => item.group === group)
-        .map(item => [item.home, item.away]);
-
-    return [...baseMatches, ...customMatches];
-}
-
-function getFixtureInfo(group, index) {
-    const baseLength = group === "group1" ? group1Matches.length : group2Matches.length;
-    if (index < baseLength) return null;
-    const extras = (window.dynamicFixtures || []).filter(item => item.group === group);
-    return extras[index - baseLength] || null;
-}
-
 function displayFixtures(matches, element, group) {
-
     const container = document.getElementById(element);
-
     if (!container) return;
 
     container.innerHTML = "";
+    if (!matches || matches.length === 0) {
+    container.innerHTML = `
+        <div class="fixture-empty">
+            <span>🗓️</span>
+            <span>No fixtures scheduled yet.</span>
+        </div>
+    `;
+    return;
+}
 
-    const fixtures = (window.dynamicFixtures || [])
-        .filter(item => item.group === group);
+    matches.forEach((match, index) => {
+        const home = match[0];
+        const away = match[1];
 
-    if (fixtures.length === 0) {
+        const result = window.savedResults[home + "-" + away];
 
-        container.innerHTML = `
-            <div style="
-                padding:25px;
-                text-align:center;
-                color:#888;
-                border-top:1px solid #292929;
-            ">
-                📅 No fixtures scheduled yet.
-            </div>
-        `;
-
-        return;
-    }
-
-    fixtures.forEach((fixture, index) => {
-
-        const result = window.savedResults[
-            fixture.home + "-" + fixture.away
-        ];
-
-        let status = "Not Played";
-
-        if (result) {
-            status = `
-                <strong style="color:#20D9F5;">
-                    ${result.home} - ${result.away}
-                </strong>
-            `;
-        }
+        const status = result
+            ? `<strong style="color:#20D9F5;">
+                ${result.home} - ${result.away}
+               </strong>`
+            : "Not Played";
 
         container.innerHTML += `
-
             <div class="fixture">
+                <div class="match-number">#${index + 1}</div>
 
-                <div class="match-number">
-                    #${index + 1}
+                <div class="teams">
+                    ${home}
+                    <span class="vs">VS</span>
+                    ${away}
                 </div>
 
-                <div>
-
-                    <div class="teams">
-                        ${fixture.home}
-                        <span class="vs">VS</span>
-                        ${fixture.away}
-                    </div>
-
-                    <div style="
-                        margin-top:8px;
-                        color:#aaa;
-                        font-size:14px;
-                    ">
-                        📅 ${fixture.date}
-                        &nbsp;&nbsp;
-                        🕐 ${fixture.time}
-                    </div>
-
-                </div>
-
-                <div class="match-status">
-                    ${status}
-                </div>
-
+                <div class="match-status">${status}</div>
             </div>
-
         `;
-
     });
-
 }
+
+
 
 function calculateStandings(teams, matches) {
     const table = teams.map(team => ({team, P:0, W:0, D:0, L:0, GF:0, GA:0, GD:0, Pts:0}));
@@ -1941,7 +1826,8 @@ function displayResults(matches, element, group) {
                 <input class="score-input" type="number" min="0" id="away-${element}-${index}" value="${away}">
                 <div class="result-team">${match[1]}</div>
                 <button class="save-btn" onclick="saveResult('${group}', ${index}, '${match[0]}', '${match[1]}', '${customId}')">Save</button>
-            </div>`;
+            ${result ? `<button class="save-btn" onclick="deleteMatchResult('${group}', ${index}, '${match[0]}', '${match[1]}', '${customId}')">Delete Result</button>` : ""}
+                </div>`;
         } else {
             const status = result ? `Played — ${result.home} : ${result.away}` : "Not Played";
             container.innerHTML += `<div class="result-card">
@@ -1954,9 +1840,26 @@ function displayResults(matches, element, group) {
 }
 
 window.saveResult = async function(group, index, homeTeam, awayTeam, customId) {
-    const homeInput = document.getElementById("home-" + (group === "group1" ? "group1Results" : "group2Results") + "-" + index);
-    const awayInput = document.getElementById("away-" + (group === "group1" ? "group1Results" : "group2Results") + "-" + index);
-    if (!homeInput || !awayInput || homeInput.value === "" || awayInput.value === "") {
+
+    if (window.currentUserRole !== "admin") {
+        alert("Only admin can edit results.");
+        return;
+    }
+
+    const element = group === "group1"
+        ? "group1Results"
+        : "group2Results";
+
+    const homeInput = document.getElementById(
+        "home-" + element + "-" + index
+    );
+
+    const awayInput = document.getElementById(
+        "away-" + element + "-" + index
+    );
+
+    if (!homeInput || !awayInput ||
+        homeInput.value === "" || awayInput.value === "") {
         alert("Enter both scores.");
         return;
     }
@@ -1964,21 +1867,81 @@ window.saveResult = async function(group, index, homeTeam, awayTeam, customId) {
     const homeScore = Number(homeInput.value);
     const awayScore = Number(awayInput.value);
     const key = homeTeam + "-" + awayTeam;
-    window.savedResults[key] = {home: homeScore, away: awayScore};
+    const previousResult = window.savedResults[key];
 
     try {
+
         if (customId) {
             await window.updateCustomFixtureScore(
-                customId, homeTeam, awayTeam, group, homeScore, awayScore
+                customId, homeTeam, awayTeam,
+                group, homeScore, awayScore
             );
         } else {
-            await window.saveMatchToFirestore(group, index, homeTeam, awayTeam, homeScore, awayScore);
+            await window.saveMatchToFirestore(
+                group, index, homeTeam, awayTeam,
+                homeScore, awayScore
+            );
         }
-        alert(`${homeTeam} ${homeScore} - ${awayScore} ${awayTeam} saved!`);
+
+        window.savedResults[key] = {
+            home: homeScore,
+            away: awayScore
+        };
+
         updateWebsite();
+
+        alert(`${homeTeam} ${homeScore} - ${awayScore} ${awayTeam} saved!`);
+
     } catch (error) {
+
         console.error(error);
+
+        if (previousResult) {
+            window.savedResults[key] = previousResult;
+        } else {
+            delete window.savedResults[key];
+        }
+
         alert("Could not save result ❌ " + (error.code || ""));
+    }
+};
+
+
+window.deleteMatchResult = async function(group, index, homeTeam, awayTeam, customId) {
+
+    if (window.currentUserRole !== "admin") {
+        alert("Only admin can delete results.");
+        return;
+    }
+
+    if (!confirm(`Delete result: ${homeTeam} VS ${awayTeam}?`)) {
+        return;
+    }
+
+    const documentId = customId || (group + "_" + (index + 1));
+    const key = homeTeam + "-" + awayTeam;
+
+    try {
+
+       await window.firestoreSetDoc(
+    window.firestoreDoc("matches", documentId),
+    {
+        played: false,
+        homeScore: null,
+        awayScore: null
+    },
+    { merge: true }
+);
+        delete window.savedResults[key];
+
+        updateWebsite();
+
+        alert("Result deleted successfully!");
+
+    } catch (error) {
+
+        console.error("Delete result error:", error);
+        alert("Could not delete result. Please try again.");
     }
 };
 
@@ -2083,13 +2046,11 @@ document.addEventListener("DOMContentLoaded", () => {
     window.applyRoleToUI();
 
     document.getElementById("addFixtureBtn")?.addEventListener("click", addFixture);
-    document.getElementById("fixtureGroup")?.addEventListener(
-    "change",
-    updateFixtureTeamOptions
-);
+    document.getElementById("fixtureGroup")?.addEventListener("change", updateFixtureTeamOptions);
     document.getElementById("saveGoalsBtn")?.addEventListener("click", savePlayerGoal);
     document.getElementById("logoutBtn")?.addEventListener("click", () => window.logoutTournament());
     refreshPlayerGoalsUI();
+    updateFixtureTeamOptions();
     updateWebsite();
 });
 
