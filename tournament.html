@@ -2105,13 +2105,11 @@ function addFixture() {
     if (window.currentUserRole !== "admin") return;
     const home = document.getElementById("homeTeam").value;
     const away = document.getElementById("awayTeam").value;
-    const date = document.getElementById("matchDate").value;
-    const time = document.getElementById("matchTime").value;
     const message = document.getElementById("fixtureMessage");
 
     if (!home || !away) { alert("Please select both teams."); return; }
     if (home === away) { alert("Home team and Away team cannot be the same."); return; }
-    if (!date || !time) { alert("Please select date and time."); return; }
+    
 
     const group1 = group1Teams.includes(home) && group1Teams.includes(away);
     const group2 = group2Teams.includes(home) && group2Teams.includes(away);
@@ -2121,14 +2119,13 @@ function addFixture() {
     }
 
     const group = group1 ? "group1" : "group2";
-    window.saveCustomFixtureToFirestore(home, away, group, date, time)
+    window.saveCustomFixtureToFirestore(home, away, group, "", "")
         .then(() => {
             message.textContent = `${home} vs ${away} saved successfully! ✅`;
             message.style.color = "green";
             document.getElementById("homeTeam").value = "";
             document.getElementById("awayTeam").value = "";
-            document.getElementById("matchDate").value = "";
-            document.getElementById("matchTime").value = "";
+           
         })
         .catch(error => {
             console.error(error);
